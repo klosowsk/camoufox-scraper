@@ -14,7 +14,7 @@ from lxml import html as lxml_html
 
 logger = logging.getLogger(__name__)
 
-CAPTCHA_PATTERNS = ["sorry.google", "consent.google"]
+CAPTCHA_PATTERNS = ["/sorry", "consent.google", "recaptcha"]
 WAIT_FOR_SELECTOR = None
 WAIT_AFTER_LOAD = 3
 
