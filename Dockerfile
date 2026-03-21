@@ -35,8 +35,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Fetch the Camoufox browser binary
 RUN python -m camoufox fetch
 
-# Copy the service
+# Copy the service and profiles
 COPY server.py .
+COPY profiles/ profiles/
 
 ENV PORT=8080
 ENV CAMOUFOX_HEADLESS=virtual
