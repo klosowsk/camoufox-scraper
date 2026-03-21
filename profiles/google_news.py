@@ -1,8 +1,8 @@
 """Google News extraction profile.
 
 Extracts structured results from rendered Google News HTML.  Handles:
-- Article element extraction
-- Base64-encoded URL decoding for ``/articles/`` redirects
+- Result extraction via ``./read/`` link anchors (current Google News layout)
+- Base64-encoded URL decoding for ``/read/`` and ``/articles/`` redirects
 - Source and publication time metadata
 - CAPTCHA detection
 """
@@ -26,40 +26,64 @@ def extract(page_html: str, page_url: str, **kwargs) -> dict:
 
     dom = lxml_html.fromstring(page_html)
 
-    # Google News wraps each result in an <article> element
-    for article in dom.xpath("//article"):
+    # Google News no longer uses <article> tags.  Results are anchors with
+    # href starting with "./read/" inside <c-wiz> components.  Each result
+    # link has meaningful text (the headline).
+    seen_urls = set()
+
+    for link_node in dom.xpath('//a[starts-with(@href, "./read/")]'):
         try:
-            # Extract the link
-            link_nodes = article.xpath(".//a/@href")
-            if not link_nodes:
-                continue
-            link = str(link_nodes[0])
+            href = link_node.get("href", "")
+            title = _text(link_node)
 
-            # Google News uses relative links like ./articles/...
-            if link.startswith("./"):
-                link = "https://news.google.com" + link[1:]
-
-            # Decode Google's base64-encoded article redirect
-            if "/articles/" in link:
-                link = _decode_google_news_url(link)
-
-            # Extract title — try several patterns as Google changes layout
-            title = _first_text(article, [".//a[1]", ".//h3", ".//h4"])
-            if not title:
+            if not title or len(title) < 10:
                 continue
 
-            # Extract source and time metadata
-            source = _text_from_xpath(article, './/div[@data-n-tid]')
-            pub_time = _text_from_xpath(article, ".//time")
+            # Build absolute URL
+            link = "https://news.google.com" + href[1:]  # strip leading "."
+
+            # Try to decode the base64-encoded actual URL
+            decoded_link = _decode_google_news_url(link)
+
+            # Deduplicate by decoded URL
+            if decoded_link in seen_urls:
+                continue
+            seen_urls.add(decoded_link)
+
+            # Walk up to find source/time metadata near this link
+            source = ""
+            pub_time = ""
+            container = link_node
+            for _ in range(5):
+                container = container.getparent()
+                if container is None:
+                    break
+                # Source is often in a data-n-tid div
+                source = source or _text_from_xpath(container, './/div[@data-n-tid]')
+                # Time element
+                pub_time = pub_time or _text_from_xpath(container, ".//time")
+                if source and pub_time:
+                    break
 
             content = " / ".join(x for x in [source, pub_time] if x)
 
-            # Extract thumbnail
-            thumb_nodes = article.xpath(".//img/@src")
-            thumbnail = str(thumb_nodes[0]) if thumb_nodes else None
+            # Thumbnail — look for nearby img
+            thumbnail = None
+            parent = link_node.getparent()
+            if parent is not None:
+                for _ in range(3):
+                    thumb_nodes = parent.xpath(".//img/@src")
+                    if thumb_nodes:
+                        thumb = str(thumb_nodes[0])
+                        if thumb.startswith("http"):
+                            thumbnail = thumb
+                            break
+                    parent = parent.getparent()
+                    if parent is None:
+                        break
 
             results.append({
-                "url": link,
+                "url": decoded_link,
                 "title": title,
                 "content": content,
                 "thumbnail": thumbnail,
@@ -73,9 +97,20 @@ def extract(page_html: str, page_url: str, **kwargs) -> dict:
 
 
 def _decode_google_news_url(link: str) -> str:
-    """Decode base64-encoded article URL from Google News redirect."""
+    """Decode base64-encoded article URL from Google News redirect.
+
+    Google News encodes the real article URL in the path using base64.
+    Works for both ``/read/`` and ``/articles/`` URL patterns.
+    """
     try:
-        path_part = link.split("/articles/")[-1].split("?")[0]
+        # Extract the base64 part from either /read/ or /articles/ pattern
+        for prefix in ("/read/", "/articles/"):
+            if prefix in link:
+                path_part = link.split(prefix)[-1].split("?")[0]
+                break
+        else:
+            return link
+
         decoded = base64.urlsafe_b64decode(path_part + "====")
         # The actual URL starts with 'http' inside the decoded bytes
         start = decoded.index(b"http")
@@ -83,17 +118,6 @@ def _decode_google_news_url(link: str) -> str:
         return actual_url
     except Exception:
         return link  # Keep the Google News link if decoding fails
-
-
-def _first_text(node, xpaths: list) -> str:
-    """Return text from the first XPath that matches."""
-    for xpath in xpaths:
-        found = node.xpath(xpath)
-        if found:
-            text = _text(found[0])
-            if text:
-                return text
-    return ""
 
 
 def _text_from_xpath(node, xpath: str) -> str:
