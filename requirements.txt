@@ -1,3 +1,4 @@
 camoufox[geoip]
 aiohttp
 lxml
+browserforge

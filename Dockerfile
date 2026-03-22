@@ -39,8 +39,26 @@ RUN python -m camoufox fetch
 COPY server.py .
 COPY profiles/ profiles/
 
+# Default userdata directory for persistent profiles (override with volume mount)
+RUN mkdir -p /userdata
+
+# Default environment — all configurable at runtime
 ENV PORT=8080
 ENV CAMOUFOX_HEADLESS=virtual
+ENV CAMOUFOX_OS=linux
+ENV CAMOUFOX_GEOIP=true
+ENV CAMOUFOX_HUMANIZE=true
+ENV CAMOUFOX_ENABLE_CACHE=true
+ENV CAMOUFOX_BLOCK_WEBRTC=false
+ENV CAMOUFOX_BLOCK_WEBGL=false
+ENV CAMOUFOX_BLOCK_IMAGES=false
+ENV CAMOUFOX_PERSISTENT=true
+ENV CAMOUFOX_USER_DATA_DIR=/userdata/profile
+ENV CAMOUFOX_FINGERPRINT_PATH=/userdata/fingerprint.json
+ENV CAMOUFOX_LOCALE=
+ENV CAMOUFOX_PROXY=
+ENV CAMOUFOX_SCREEN_WIDTH=1920
+ENV CAMOUFOX_SCREEN_HEIGHT=1080
 
 EXPOSE 8080
 
