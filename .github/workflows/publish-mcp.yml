@@ -17,7 +17,7 @@ env:
 
 jobs:
   publish:
-    name: Publish @ghostreader/mcp
+    name: Publish ghostreader-mcp
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout

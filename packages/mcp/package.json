@@ -1,5 +1,5 @@
 {
-  "name": "@ghostreader/mcp",
+  "name": "ghostreader-mcp",
   "version": "0.1.0",
   "description": "MCP server for GhostReader — anti-detect browser rendering + AI content processing",
   "type": "module",

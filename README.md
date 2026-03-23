@@ -42,7 +42,7 @@ curl https://your-instance/render/https://example.com
 | [**processor**](packages/processor) | Content processing API + Web UI | Docker |
 | [**scraper**](packages/scraper) | Anti-detect browser service | Docker |
 | [**cli**](packages/cli) | Command-line tool | `npm i -g ghostreader` |
-| [**mcp**](packages/mcp) | MCP server for AI agents | `npm i -g @ghostreader/mcp` |
+| [**mcp**](packages/mcp) | MCP server for AI agents | `npm i -g ghostreader-mcp` |
 | [**ui**](packages/ui) | React web interface | Embedded in processor |
 
 ## Engines

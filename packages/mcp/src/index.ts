@@ -6,7 +6,7 @@
  * No heavy dependencies — just MCP SDK + fetch.
  *
  * Usage:
- *   GHOSTREADER_URL=http://localhost:3000 npx @ghostreader/mcp
+ *   GHOSTREADER_URL=http://localhost:3000 npx ghostreader-mcp
  *
  * Environment variables:
  *   GHOSTREADER_URL — processor URL (default: http://localhost:3000)

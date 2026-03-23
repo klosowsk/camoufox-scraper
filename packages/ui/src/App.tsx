@@ -249,7 +249,7 @@ function HomePage() {
             CLI (npm)
           </a>
           <a
-            href="https://www.npmjs.com/package/@ghostreader/mcp"
+            href="https://www.npmjs.com/package/ghostreader-mcp"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 hover:text-foreground transition-colors"

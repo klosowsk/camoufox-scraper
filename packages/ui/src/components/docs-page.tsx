@@ -10,7 +10,7 @@ Anti-detect browser rendering proxy with AI-powered content processing. Render a
 
 - **Web UI** — you're looking at it
 - **CLI** — \`npx ghostreader render https://example.com\`
-- **MCP** — \`@ghostreader/mcp\` for Claude Desktop, Cursor, OpenCode
+- **MCP** — \`ghostreader-mcp\` for Claude Desktop, Cursor, OpenCode
 - **API** — \`GET /render/https://example.com\`
 
 ---
@@ -108,7 +108,7 @@ export GHOSTREADER_URL=https://your-instance.example.com
 For AI agents — Claude Desktop, Cursor, OpenCode, etc.
 
 \`\`\`bash
-npm install -g @ghostreader/mcp
+npm install -g ghostreader-mcp
 \`\`\`
 
 ### Tools
@@ -125,7 +125,7 @@ npm install -g @ghostreader/mcp
   "mcpServers": {
     "ghostreader": {
       "command": "npx",
-      "args": ["-y", "@ghostreader/mcp"],
+      "args": ["-y", "ghostreader-mcp"],
       "env": {
         "GHOSTREADER_URL": "https://your-instance.example.com"
       }
@@ -142,7 +142,7 @@ npm install -g @ghostreader/mcp
     "ghostreader": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@ghostreader/mcp"],
+      "args": ["-y", "ghostreader-mcp"],
       "env": {
         "GHOSTREADER_URL": "https://your-instance.example.com"
       }
