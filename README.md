@@ -33,7 +33,7 @@ curl http://localhost:3000/render/https://example.com
                    │         GhostReader                │
   Web UI ──────┐   │                                    │
   CLI ─────────┤   │  Processor                         │
-  MCP agents ──┤──▶│  ├─ Content extraction              │
+  MCP agents ──┤──▶│  ├─ Content extraction             │
   SearXNG ─────┤   │  ├─ AI formatting (optional)       │
   curl/API ────┘   │  └─ Extraction profiles            │
                    │         │                          │
