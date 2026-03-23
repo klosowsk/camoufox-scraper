@@ -36,10 +36,7 @@ export interface ProfilesResponse {
 
 export interface HealthResponse {
   status: string;
-  scraper: {
-    type: string;
-    healthy: boolean;
-  };
+  scraper: string;
 }
 
 class ApiError extends Error {

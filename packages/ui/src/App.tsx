@@ -75,7 +75,7 @@ function HomePage() {
 
     getHealth()
       .then((res) => {
-        setScraperConnected(res.scraper?.healthy ?? false);
+        setScraperConnected(res.scraper === "connected");
       })
       .catch(() => {
         setScraperConnected(false);
@@ -158,16 +158,26 @@ function HomePage() {
   const hasResults =
     renderContent !== null || extractData !== null || error !== null;
 
+  function handleReset() {
+    setRenderContent(null);
+    setExtractData(null);
+    setError(null);
+    setElapsed(null);
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <div className="flex items-center gap-2">
+        <button
+          onClick={handleReset}
+          className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+        >
           <Ghost className="size-5 text-foreground" />
           <span className="font-medium text-sm tracking-tight">
             GhostReader
           </span>
-        </div>
+        </button>
         <div className="flex items-center gap-1">
           <Link
             to="/docs"

@@ -403,14 +403,14 @@ export function DocsPage() {
       )}
 
       {/* Main layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Desktop sidebar */}
-        <aside className="hidden md:block w-48 shrink-0 border-r border-border overflow-y-auto py-6 px-3">
+      <div className="flex-1 flex">
+        {/* Desktop sidebar — sticky below header */}
+        <aside className="hidden md:block w-48 shrink-0 border-r border-border sticky top-0 h-screen overflow-y-auto py-6 px-3">
           {nav}
         </aside>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto px-6 py-8" ref={contentRef}>
+        <main className="flex-1 min-w-0 px-6 py-8" ref={contentRef}>
           <div className="max-w-2xl mx-auto">
             <div className="prose-ghost">
               <Markdown
