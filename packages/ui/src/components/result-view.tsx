@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Copy, Check, Eye, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -117,7 +118,7 @@ export function ResultView({
       <div className="rounded-lg border border-border bg-card p-4 overflow-auto">
         {viewMode === "rendered" && format === "markdown" ? (
           <div className="prose-ghost">
-            <Markdown>{content}</Markdown>
+            <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
           </div>
         ) : (
           <pre className="text-sm whitespace-pre-wrap break-words font-mono text-foreground/90">
