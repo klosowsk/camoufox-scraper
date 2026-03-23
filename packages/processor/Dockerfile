@@ -7,6 +7,7 @@ WORKDIR /ui
 COPY packages/ui/package.json packages/ui/package-lock.json ./
 RUN npm ci
 COPY packages/ui/ ./
+COPY docs/ ../docs/
 RUN npm run build
 
 # Stage 2: Build processor
