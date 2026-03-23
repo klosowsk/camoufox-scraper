@@ -1,33 +1,27 @@
 /**
- * Mozilla Readability wrapper.
+ * Smart content extraction.
  *
- * Extracts the "main content" from a web page, stripping navigation,
- * sidebars, ads, footers, and other boilerplate.
+ * Uses JSDOM to parse the HTML, strips noisy elements (nav, header, footer,
+ * aside, script, style, svg, noscript, iframe), then extracts the <main>
+ * content if available, otherwise falls back to <body>.
  *
- * Includes a pre-clean step that strips heavy tags (script, style, svg,
- * noscript, iframe) before feeding to JSDOM — critical for large pages
- * where JSDOM parsing would otherwise take 20-30+ seconds.
+ * This approach preserves data-heavy content (tables, charts, indicators)
+ * that Mozilla Readability would strip, while still removing navigation
+ * chrome and boilerplate.
  */
 
-import { Readability } from '@mozilla/readability';
 import { JSDOM } from 'jsdom';
 
-export interface ReadabilityResult {
+export interface ExtractedContent {
   title: string;
-  content: string; // cleaned HTML
-  textContent: string;
-  excerpt: string;
-  byline: string | null;
-  siteName: string | null;
-  length: number;
+  content: string; // cleaned HTML suitable for Turndown
 }
 
 /**
- * Strip heavy/noisy tags via regex BEFORE feeding to JSDOM.
- * This avoids JSDOM parsing megabytes of inline scripts and SVG paths.
+ * Strip heavy tags via regex BEFORE feeding to JSDOM.
+ * Avoids JSDOM parsing megabytes of inline scripts and SVG paths.
  */
 function preClean(html: string): string {
-  // Remove script, style, svg, noscript, iframe tags and their contents
   return html
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -37,26 +31,28 @@ function preClean(html: string): string {
 }
 
 /**
- * Run Mozilla Readability on raw HTML to extract the main article content.
+ * Extract content from rendered HTML using smart DOM extraction.
  *
- * Returns cleaned HTML (in the `content` field) suitable for Turndown conversion.
- * Returns null if Readability can't identify main content (e.g., non-article pages).
+ * 1. Pre-clean: strip script/style/svg/noscript/iframe via regex (fast)
+ * 2. Parse with JSDOM
+ * 3. Remove nav, header, footer, aside elements
+ * 4. Extract <main> content if present, otherwise <body>
+ * 5. Return cleaned HTML + page title
  */
-export function extractContent(html: string, url?: string): ReadabilityResult | null {
+export function extractContent(html: string, url?: string): ExtractedContent {
   const cleaned = preClean(html);
   const dom = new JSDOM(cleaned, { url });
-  const reader = new Readability(dom.window.document);
-  const result = reader.parse();
+  const doc = dom.window.document;
 
-  if (!result) return null;
+  // Get title before stripping elements
+  const title = doc.querySelector('title')?.textContent?.trim() || '';
 
-  return {
-    title: result.title,
-    content: result.content,
-    textContent: result.textContent,
-    excerpt: result.excerpt,
-    byline: result.byline,
-    siteName: result.siteName,
-    length: result.length,
-  };
+  // Remove noisy structural elements
+  doc.querySelectorAll('nav, header, footer, aside').forEach((el) => el.remove());
+
+  // Extract <main> if it exists (most modern sites have one), otherwise <body>
+  const main = doc.querySelector('main');
+  const content = main ? main.innerHTML : doc.body?.innerHTML || cleaned;
+
+  return { title, content };
 }

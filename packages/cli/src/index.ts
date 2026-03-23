@@ -152,9 +152,8 @@ Usage:
   ghostreader health                    Check processor health
 
 Options (render):
-  --engine <name>     Processing engine: turndown (default), readerlm, qwen-small, auto
+  --engine <name>     Processing engine: standard (default, fast), readerlm (AI), qwen-small (AI), auto
   --format <type>     Output format: markdown (default), html, json
-  --wait <seconds>    Wait after page load (default: 2)
 
 Options (extract):
   --profile <name>    Extraction profile (required): google_web, google_news, base

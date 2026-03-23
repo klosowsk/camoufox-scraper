@@ -27,10 +27,9 @@ function App() {
   // Config state
   const [config, setConfig] = useState<Config>({
     mode: "render",
-    engine: "auto",
+    engine: "standard",
     format: "markdown",
     profile: "google_web",
-    wait: 2,
   });
 
   // Data sources
@@ -84,11 +83,10 @@ function App() {
           const result = await renderUrl(url, {
             engine: config.engine,
             format: config.format,
-            wait_after_load: config.wait,
           });
           setRenderContent(result);
         } else {
-          const result = await extractUrl(url, config.profile, config.wait);
+          const result = await extractUrl(url, config.profile);
           setExtractData(result);
         }
         setElapsed(performance.now() - start);
@@ -100,7 +98,6 @@ function App() {
           engine: config.engine,
           format: config.format,
           profile: config.profile,
-          wait: config.wait,
         });
         setHistory((prev) => {
           const filtered = prev.filter((e) => e.id !== entry.id);
@@ -121,10 +118,9 @@ function App() {
   function handleHistorySelect(entry: HistoryEntry) {
     setConfig({
       mode: entry.mode,
-      engine: entry.engine || "auto",
+      engine: entry.engine || "standard",
       format: (entry.format as Config["format"]) || "markdown",
       profile: entry.profile || "google_web",
-      wait: entry.wait ?? 2,
     });
     setHistoryOpen(false);
 

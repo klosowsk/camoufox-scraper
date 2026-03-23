@@ -2,9 +2,9 @@
  * Content processing pipeline orchestrator.
  *
  * Routes HTML through the appropriate engine:
- *   - turndown (default): Readability + Turndown — fast, algorithmic
+ *   - standard (default): Smart DOM extraction + Turndown — fast, no AI
  *   - readerlm: Ollama reader-lm model — best for complex HTML
- *   - qwen-small/medium/large: Ollama qwen models — general purpose
+ *   - qwen-small: Ollama qwen3.5:2b — general purpose
  *   - auto: heuristic selection based on content complexity
  */
 
@@ -12,7 +12,7 @@ import { extractContent } from './readability.js';
 import { htmlToMarkdown } from './turndown.js';
 import { htmlToMarkdownWithAI, listModels, resolveModel, isOllamaAvailable } from './ollama.js';
 
-export type Engine = 'turndown' | 'readerlm' | 'qwen-small' | 'qwen-medium' | 'qwen-large' | 'auto' | string;
+export type Engine = 'standard' | 'readerlm' | 'qwen-small' | 'auto' | string;
 export type OutputFormat = 'markdown' | 'html' | 'json';
 
 export interface ProcessOptions {
@@ -27,7 +27,6 @@ export interface ProcessResult {
   format: OutputFormat;
   engine: string;
   title?: string;
-  excerpt?: string;
 }
 
 /**
@@ -45,76 +44,72 @@ function isComplex(html: string): boolean {
 /**
  * Process HTML through the content pipeline.
  *
- * The default engine (turndown) runs Readability first to extract main content,
- * then Turndown to convert to markdown. AI engines skip Readability and send
- * raw HTML to the model (which handles content extraction itself).
+ * The default engine (standard) uses smart DOM extraction (strip nav/header/footer,
+ * extract <main>) then Turndown for markdown conversion.
+ * AI engines send pre-cleaned HTML to the model directly.
  */
 export async function process(options: ProcessOptions): Promise<ProcessResult> {
   const { html, url, format = 'markdown' } = options;
-  let engine = options.engine || 'turndown';
+  let engine = options.engine || 'standard';
+
+  // Backward compat: accept 'turndown' as alias for 'standard'
+  if (engine === 'turndown') engine = 'standard';
 
   // Auto-select engine: use AI for complex pages, but only if Ollama is available
   if (engine === 'auto') {
     if (isComplex(html) && (await isOllamaAvailable())) {
       engine = 'readerlm';
     } else {
-      engine = 'turndown';
+      engine = 'standard';
     }
   }
 
-  // For HTML format, just run Readability to clean up and return HTML
+  // Smart DOM extraction (used by standard engine and html/json formats)
+  const extracted = extractContent(html, url);
+
+  // For HTML format, return the cleaned HTML
   if (format === 'html') {
-    const article = extractContent(html, url);
     return {
-      content: article?.content || html,
+      content: extracted.content,
       format: 'html',
-      engine: 'readability',
-      title: article?.title,
-      excerpt: article?.excerpt,
+      engine: 'standard',
+      title: extracted.title,
     };
   }
 
-  // For JSON format, return Readability metadata
+  // For JSON format, return extracted content as text
   if (format === 'json') {
-    const article = extractContent(html, url);
     const result = {
-      title: article?.title || '',
-      content: article?.textContent || '',
-      excerpt: article?.excerpt || '',
-      byline: article?.byline || null,
-      siteName: article?.siteName || null,
-      length: article?.length || html.length,
+      title: extracted.title,
+      content: extracted.content,
+      length: extracted.content.length,
     };
     return {
       content: JSON.stringify(result),
       format: 'json',
-      engine: 'readability',
-      title: article?.title,
+      engine: 'standard',
+      title: extracted.title,
     };
   }
 
   // Markdown format with different engines
-  if (engine === 'turndown') {
-    // Readability first (extract main content), then Turndown
-    const article = extractContent(html, url);
-    const sourceHtml = article?.content || html;
-    const markdown = htmlToMarkdown(sourceHtml);
-
+  if (engine === 'standard') {
+    const markdown = htmlToMarkdown(extracted.content);
     return {
       content: markdown,
       format: 'markdown',
-      engine: 'turndown',
-      title: article?.title,
-      excerpt: article?.excerpt,
+      engine: 'standard',
+      title: extracted.title,
     };
   }
 
-  // AI engines: send raw HTML directly to the model
-  const markdown = await htmlToMarkdownWithAI(html, engine);
+  // AI engines: send pre-cleaned HTML to the model
+  const markdown = await htmlToMarkdownWithAI(extracted.content, engine);
   return {
     content: markdown,
     format: 'markdown',
     engine: resolveModel(engine),
+    title: extracted.title,
   };
 }
 
@@ -123,7 +118,7 @@ export async function process(options: ProcessOptions): Promise<ProcessResult> {
  */
 export async function getAvailableEngines(): Promise<Array<{ name: string; type: string; model?: string; available: boolean }>> {
   const engines: Array<{ name: string; type: string; model?: string; available: boolean }> = [
-    { name: 'turndown', type: 'algorithmic', available: true },
+    { name: 'standard', type: 'fast', available: true },
     { name: 'auto', type: 'auto', available: true },
   ];
 
@@ -132,13 +127,11 @@ export async function getAvailableEngines(): Promise<Array<{ name: string; type:
   const aiEngines = [
     { name: 'readerlm', model: 'reader-lm:1.5b' },
     { name: 'qwen-small', model: 'qwen3.5:2b' },
-    { name: 'qwen-medium', model: 'qwen3.5:4b' },
-    { name: 'qwen-large', model: 'qwen3.5:9b' },
   ];
 
   for (const e of aiEngines) {
     const available = models.some((m) => m === e.model || m.startsWith(e.model.split(':')[0]));
-    engines.push({ name: e.name, type: 'ollama', model: e.model, available });
+    engines.push({ name: e.name, type: 'ai', model: e.model, available });
   }
 
   return engines;

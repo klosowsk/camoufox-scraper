@@ -1,4 +1,3 @@
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -11,12 +10,22 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export type Mode = "render" | "extract";
 export type Format = "markdown" | "html" | "json";
 
+const ENGINE_LABELS: Record<string, string> = {
+  standard: "Standard (fast, no AI)",
+  auto: "Auto",
+  readerlm: "ReaderLM (AI)",
+  "qwen-small": "Qwen 2B (AI)",
+};
+
+function engineLabel(name: string): string {
+  return ENGINE_LABELS[name] || name;
+}
+
 export interface Config {
   mode: Mode;
   engine: string;
   format: Format;
   profile: string;
-  wait: number;
 }
 
 interface ConfigPanelProps {
@@ -55,13 +64,13 @@ export function ConfigPanel({
           value={config.engine}
           onValueChange={(v) => update({ engine: v as string })}
         >
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Engine" />
           </SelectTrigger>
           <SelectContent>
             {engines.map((e) => (
               <SelectItem key={e} value={e}>
-                {e}
+                {engineLabel(e)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -103,22 +112,7 @@ export function ConfigPanel({
           </Select>
         )}
 
-        {/* Wait input */}
-        <div className="flex items-center gap-1.5">
-          <label className="text-xs text-muted-foreground whitespace-nowrap">
-            Wait
-          </label>
-          <Input
-            type="number"
-            min={0}
-            max={30}
-            step={1}
-            value={config.wait}
-            onChange={(e) => update({ wait: Number(e.target.value) || 0 })}
-            className="w-16 h-8 text-center"
-          />
-          <span className="text-xs text-muted-foreground">s</span>
-        </div>
+
       </div>
     </div>
   );

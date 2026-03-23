@@ -24,8 +24,6 @@ function getClient(): Ollama {
 const ENGINE_MODELS: Record<string, string> = {
   readerlm: 'reader-lm:1.5b',
   'qwen-small': 'qwen3.5:2b',
-  'qwen-medium': 'qwen3.5:4b',
-  'qwen-large': 'qwen3.5:9b',
 };
 
 // ---------------------------------------------------------------------------

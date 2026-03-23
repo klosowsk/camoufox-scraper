@@ -8,7 +8,6 @@ export interface HistoryEntry {
   engine?: string;
   format?: string;
   profile?: string;
-  wait?: number;
   timestamp: number;
 }
 
