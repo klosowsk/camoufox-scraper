@@ -2,3 +2,4 @@ camoufox[geoip]
 aiohttp
 lxml
 browserforge
+html2text
