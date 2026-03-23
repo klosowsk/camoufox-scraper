@@ -1,28 +1,23 @@
 services:
-  camoufox:
-    build: .
+  scraper:
+    build: packages/scraper
     ports:
       - "8090:8080"
     volumes:
-      - ./userdata:/userdata
+      - ./packages/scraper/userdata:/userdata
     environment:
+      - CAMOUFOX_HEADLESS=virtual
       - CAMOUFOX_PERSISTENT=true
-      - CAMOUFOX_GEOIP=true
-      - CAMOUFOX_OS=linux
-      - CAMOUFOX_HUMANIZE=true
-      - CAMOUFOX_ENABLE_CACHE=true
-      - CAMOUFOX_BLOCK_WEBRTC=false
-      - CAMOUFOX_BLOCK_WEBGL=false
-      - CAMOUFOX_BLOCK_IMAGES=false
-      # To test stateless mode (fresh fingerprint each launch):
-      # - CAMOUFOX_PERSISTENT=false
-      # To add a proxy:
-      # - CAMOUFOX_PROXY=socks5://user:pass@host:port
-      # To override locale (instead of geoip auto-detect):
-      # - CAMOUFOX_LOCALE=en-US
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+
+  processor:
+    build:
+      context: packages/processor
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - SCRAPER_URL=http://scraper:8080
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - OLLAMA_DEFAULT_MODEL=reader-lm:1.5b
+    depends_on:
+      - scraper

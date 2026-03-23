@@ -1,5 +1,5 @@
 ---
-name: Build and Push
+name: Build Processor
 
 on:
   workflow_dispatch:
@@ -7,14 +7,11 @@ on:
     branches:
       - main
     paths:
-      - 'server.py'
-      - 'profiles/**'
-      - 'Dockerfile'
-      - 'requirements.txt'
-      - '.github/workflows/build.yml'
+      - 'packages/processor/**'
+      - '.github/workflows/build-processor.yml'
 
 concurrency:
-  group: build-${{ github.ref }}
+  group: build-processor-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -23,11 +20,11 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository }}/processor
 
 jobs:
   build-and-push:
-    name: Build and Push
+    name: Build and Push Processor
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -55,7 +52,7 @@ jobs:
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.sha_short }} \
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
             --load \
-            .
+            packages/processor
 
       - name: Push to GHCR
         run: |

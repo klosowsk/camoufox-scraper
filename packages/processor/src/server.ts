@@ -1,0 +1,175 @@
+/**
+ * Hono HTTP API for the GhostReader content processor.
+ */
+
+import { Hono } from 'hono';
+import { process, getAvailableEngines, type OutputFormat, type Engine } from './pipeline/index.js';
+import { scrape, scraperHealth } from './clients/scraper.js';
+import { config } from './config.js';
+
+export const app = new Hono();
+
+// ---------------------------------------------------------------------------
+// POST /process — process pre-fetched HTML
+// ---------------------------------------------------------------------------
+
+app.post('/process', async (c) => {
+  const body = await c.req.json<{
+    html: string;
+    url?: string;
+    engine?: Engine;
+    format?: OutputFormat;
+  }>();
+
+  if (!body.html) {
+    return c.json({ error: "Missing 'html' field" }, 400);
+  }
+
+  try {
+    const result = await process({
+      html: body.html,
+      url: body.url,
+      engine: body.engine,
+      format: body.format,
+    });
+
+    if (result.format === 'html') {
+      return c.html(result.content);
+    }
+    if (result.format === 'json') {
+      return c.json(JSON.parse(result.content));
+    }
+    // markdown
+    return c.text(result.content);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return c.json({ error: msg }, 500);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /scrape — render URL via scraper + process content
+// ---------------------------------------------------------------------------
+
+app.post('/scrape', async (c) => {
+  const body = await c.req.json<{
+    url: string;
+    format?: OutputFormat;
+    engine?: Engine;
+    wait_after_load?: number;
+    timeout?: number;
+  }>();
+
+  if (!body.url) {
+    return c.json({ error: "Missing 'url' field" }, 400);
+  }
+
+  try {
+    const scraped = await scrape({
+      url: body.url,
+      waitAfterLoad: body.wait_after_load,
+      timeout: body.timeout,
+    });
+
+    const result = await process({
+      html: scraped.html,
+      url: scraped.url,
+      engine: body.engine,
+      format: body.format,
+    });
+
+    if (result.format === 'html') {
+      return c.html(result.content);
+    }
+    if (result.format === 'json') {
+      return c.json(JSON.parse(result.content));
+    }
+    return c.text(result.content);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return c.json({ error: msg }, 500);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /render/{url} — Jina-style URL rendering
+// ---------------------------------------------------------------------------
+
+app.get('/render/*', async (c) => {
+  // Extract target URL from path (everything after /render/)
+  const targetPath = c.req.path.replace(/^\/render\//, '');
+  if (!targetPath) {
+    return c.json({ error: 'Missing URL after /render/' }, 400);
+  }
+
+  // Parse our query params vs target URL params
+  const queryParams = c.req.query();
+  const format = (queryParams.format as OutputFormat) || 'markdown';
+  const engine = (queryParams.engine as Engine) || 'turndown';
+  const wait = parseFloat(queryParams.wait || '2');
+
+  // Rebuild target URL with remaining query params
+  const ourParams = new Set(['format', 'engine', 'wait']);
+  const targetParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(queryParams)) {
+    if (!ourParams.has(key)) {
+      targetParams.append(key, value);
+    }
+  }
+  const targetQuery = targetParams.toString();
+  const targetUrl = targetQuery
+    ? `${targetPath}${targetPath.includes('?') ? '&' : '?'}${targetQuery}`
+    : targetPath;
+
+  if (!['markdown', 'html', 'json'].includes(format)) {
+    return c.json({ error: "Invalid format. Must be 'markdown', 'html', or 'json'" }, 400);
+  }
+
+  try {
+    const scraped = await scrape({ url: targetUrl, waitAfterLoad: wait });
+
+    const result = await process({
+      html: scraped.html,
+      url: scraped.url,
+      engine,
+      format,
+    });
+
+    if (result.format === 'html') {
+      return c.html(result.content);
+    }
+    if (result.format === 'json') {
+      return c.json(JSON.parse(result.content));
+    }
+    return c.text(result.content);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return c.json({ error: msg }, 500);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Utility endpoints
+// ---------------------------------------------------------------------------
+
+app.get('/health', async (c) => {
+  const scraper = await scraperHealth();
+  return c.json({
+    status: 'ok',
+    scraper: scraper ? 'connected' : 'unreachable',
+  });
+});
+
+app.get('/config', (c) => {
+  return c.json({
+    scraperUrl: config.scraperUrl,
+    ollamaUrl: config.ollamaUrl,
+    ollamaDefaultModel: config.ollamaDefaultModel,
+    port: config.port,
+  });
+});
+
+app.get('/engines', async (c) => {
+  const engines = await getAvailableEngines();
+  return c.json({ engines });
+});
