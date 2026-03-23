@@ -3,6 +3,10 @@
  *
  * Extracts the "main content" from a web page, stripping navigation,
  * sidebars, ads, footers, and other boilerplate.
+ *
+ * Includes a pre-clean step that strips heavy tags (script, style, svg,
+ * noscript, iframe) before feeding to JSDOM — critical for large pages
+ * where JSDOM parsing would otherwise take 20-30+ seconds.
  */
 
 import { Readability } from '@mozilla/readability';
@@ -19,13 +23,28 @@ export interface ReadabilityResult {
 }
 
 /**
+ * Strip heavy/noisy tags via regex BEFORE feeding to JSDOM.
+ * This avoids JSDOM parsing megabytes of inline scripts and SVG paths.
+ */
+function preClean(html: string): string {
+  // Remove script, style, svg, noscript, iframe tags and their contents
+  return html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/gi, '')
+    .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, '')
+    .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, '');
+}
+
+/**
  * Run Mozilla Readability on raw HTML to extract the main article content.
  *
  * Returns cleaned HTML (in the `content` field) suitable for Turndown conversion.
  * Returns null if Readability can't identify main content (e.g., non-article pages).
  */
 export function extractContent(html: string, url?: string): ReadabilityResult | null {
-  const dom = new JSDOM(html, { url });
+  const cleaned = preClean(html);
+  const dom = new JSDOM(cleaned, { url });
   const reader = new Readability(dom.window.document);
   const result = reader.parse();
 

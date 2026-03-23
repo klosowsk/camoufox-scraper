@@ -32,7 +32,7 @@ export async function scrape(options: ScrapeOptions): Promise<ScrapeResult> {
     body: JSON.stringify({
       url: options.url,
       wait_after_load: options.waitAfterLoad ?? 2,
-      timeout: options.timeout ?? 30000,
+      timeout: options.timeout ?? 60000,
       headers: options.headers,
       wait_for_selector: options.waitForSelector,
       wait_until: options.waitUntil ?? 'domcontentloaded',

@@ -114,9 +114,10 @@ app.get('/render/*', async (c) => {
   const format = (queryParams.format as OutputFormat) || 'markdown';
   const engine = (queryParams.engine as Engine) || 'turndown';
   const wait = parseFloat(queryParams.wait || '2');
+  const timeout = queryParams.timeout ? parseInt(queryParams.timeout, 10) : undefined;
 
   // Rebuild target URL with remaining query params
-  const ourParams = new Set(['format', 'engine', 'wait']);
+  const ourParams = new Set(['format', 'engine', 'wait', 'timeout']);
   const targetParams = new URLSearchParams();
   for (const [key, value] of Object.entries(queryParams)) {
     if (!ourParams.has(key)) {
@@ -133,7 +134,7 @@ app.get('/render/*', async (c) => {
   }
 
   try {
-    const scraped = await scrape({ url: targetUrl, waitAfterLoad: wait });
+    const scraped = await scrape({ url: targetUrl, waitAfterLoad: wait, timeout });
 
     const result = await process({
       html: scraped.html,
