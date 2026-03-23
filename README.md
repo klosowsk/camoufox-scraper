@@ -1,8 +1,16 @@
 # GhostReader
 
-Self-hosted anti-detect browser rendering proxy with AI-powered content processing. Render any URL to clean markdown through a stealth [Camoufox](https://github.com/daijro/camoufox) browser, extract structured data with extraction profiles, and optionally restructure content with [Ollama](https://ollama.com) AI.
+Self-hosted anti-detect browser rendering proxy with AI-powered content processing. Render any URL to clean markdown through a stealth browser, extract structured data, and optionally restructure content with AI.
 
 ![GhostReader UI](docs/screenshot.png)
+
+## Use Cases
+
+- **AI agents** — give your LLM access to any website via MCP, without getting blocked
+- **Private search** — use as a SearXNG backend to render Google/News results through a stealth browser
+- **Web scraping** — render JS-heavy SPAs and get clean markdown, not raw HTML soup
+- **Research** — extract and format content from any page into structured, readable output
+- **Content pipelines** — feed clean markdown into RAG systems, databases, or downstream processing
 
 ## Quick Start
 
@@ -24,14 +32,14 @@ curl http://localhost:3000/render/https://example.com
                    ┌────────────────────────────────────┐
                    │         GhostReader                │
   Web UI ──────┐   │                                    │
-  CLI ─────────┤   │  Processor (TypeScript/Hono)       │
-  MCP agents ──┤──▶│  ├─ Defuddle content extraction    │
-  SearXNG ─────┤   │  ├─ Ollama AI formatting (opt.)    │
+  CLI ─────────┤   │  Processor                         │
+  MCP agents ──┤──▶│  ├─ Content extraction              │
+  SearXNG ─────┤   │  ├─ AI formatting (optional)       │
   curl/API ────┘   │  └─ Extraction profiles            │
                    │         │                          │
                    │         ▼                          │
-                   │  Scraper (Python/Camoufox)         │
-                   │  ├─ Anti-detect Firefox browser    │
+                   │  Scraper                           │
+                   │  ├─ Anti-detect browser            │
                    │  ├─ Persistent identity/cookies    │
                    │  └─ GeoIP fingerprint matching     │
                    └────────────────────────────────────┘
@@ -51,8 +59,8 @@ curl http://localhost:3000/render/https://example.com
 
 | Engine | Speed | Description |
 |--------|-------|-------------|
-| **standard** | ~2-5s | Defuddle extraction + markdown. No AI needed. |
-| **ai** | ~5-15s | Defuddle + reader-lm-v2. Restructures content into clean tables. |
+| **standard** | ~2-5s | Fast content extraction + markdown. No AI needed. |
+| **ai** | ~5-15s | AI-powered restructuring. Turns noisy pages into clean tables and lists. |
 
 ## Documentation
 
