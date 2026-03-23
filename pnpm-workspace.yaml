@@ -1,2 +1,4 @@
 packages:
   - "packages/processor"
+  - "packages/mcp"
+  - "packages/cli"

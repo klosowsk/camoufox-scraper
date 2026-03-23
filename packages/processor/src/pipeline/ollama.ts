@@ -2,6 +2,8 @@
  * Ollama client for AI-powered HTML-to-Markdown conversion.
  *
  * Supports dynamic model selection at request time.
+ * Ollama is entirely optional — if unreachable, AI engines are unavailable
+ * and the 'auto' engine falls back to 'turndown'.
  */
 
 import { Ollama } from 'ollama';
@@ -26,6 +28,37 @@ const ENGINE_MODELS: Record<string, string> = {
   'qwen-large': 'qwen3.5:9b',
 };
 
+// ---------------------------------------------------------------------------
+// Cached Ollama availability (avoids hitting Ollama on every request)
+// ---------------------------------------------------------------------------
+
+let cachedModels: string[] | null = null;
+let cacheExpiry = 0;
+const CACHE_TTL_MS = 30_000; // 30 seconds
+
+async function getCachedModels(): Promise<string[]> {
+  const now = Date.now();
+  if (cachedModels !== null && now < cacheExpiry) {
+    return cachedModels;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+
+    const response = await getClient().list();
+    clearTimeout(timeout);
+
+    cachedModels = response.models.map((m) => m.name);
+    cacheExpiry = now + CACHE_TTL_MS;
+    return cachedModels;
+  } catch {
+    cachedModels = [];
+    cacheExpiry = now + CACHE_TTL_MS;
+    return [];
+  }
+}
+
 /**
  * Resolve an engine name to an Ollama model name.
  */
@@ -34,7 +67,26 @@ export function resolveModel(engine: string): string {
 }
 
 /**
+ * Check if Ollama is reachable and has any models.
+ */
+export async function isOllamaAvailable(): Promise<boolean> {
+  const models = await getCachedModels();
+  return models.length > 0;
+}
+
+/**
+ * Check if a specific engine/model is available.
+ */
+export async function isModelAvailable(engine: string): Promise<boolean> {
+  const model = resolveModel(engine);
+  const models = await getCachedModels();
+  return models.some((m) => m === model || m.startsWith(model.split(':')[0]));
+}
+
+/**
  * Convert HTML to markdown using an Ollama model.
+ *
+ * Throws a descriptive error if Ollama is unreachable or the model is unavailable.
  *
  * For reader-lm: send raw HTML directly (it's trained for this).
  * For general models (qwen): use a system prompt.
@@ -44,6 +96,23 @@ export async function htmlToMarkdownWithAI(
   engine: string,
 ): Promise<string> {
   const model = resolveModel(engine);
+
+  // Pre-flight check: is Ollama reachable?
+  const available = await isModelAvailable(engine);
+  if (!available) {
+    const ollamaUp = await isOllamaAvailable();
+    if (!ollamaUp) {
+      throw new Error(
+        `AI engine '${engine}' requires Ollama at ${config.ollamaUrl} which is unreachable. ` +
+          `Set OLLAMA_URL to a running Ollama instance, or use engine 'turndown' (no AI required).`,
+      );
+    }
+    throw new Error(
+      `Model '${model}' is not available in Ollama. ` +
+        `Run 'ollama pull ${model}' to download it, or use engine 'turndown'.`,
+    );
+  }
+
   const isReaderLM = model.startsWith('reader-lm');
 
   const messages = isReaderLM
@@ -70,19 +139,5 @@ export async function htmlToMarkdownWithAI(
  * List available Ollama models. Returns model names or empty array if Ollama is unreachable.
  */
 export async function listModels(): Promise<string[]> {
-  try {
-    const response = await getClient().list();
-    return response.models.map((m) => m.name);
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Check if Ollama is reachable and a specific model is available.
- */
-export async function isModelAvailable(engine: string): Promise<boolean> {
-  const model = resolveModel(engine);
-  const models = await listModels();
-  return models.some((m) => m === model || m.startsWith(model.split(':')[0]));
+  return getCachedModels();
 }

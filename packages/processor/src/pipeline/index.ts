@@ -10,7 +10,7 @@
 
 import { extractContent } from './readability.js';
 import { htmlToMarkdown } from './turndown.js';
-import { htmlToMarkdownWithAI, listModels, resolveModel } from './ollama.js';
+import { htmlToMarkdownWithAI, listModels, resolveModel, isOllamaAvailable } from './ollama.js';
 
 export type Engine = 'turndown' | 'readerlm' | 'qwen-small' | 'qwen-medium' | 'qwen-large' | 'auto' | string;
 export type OutputFormat = 'markdown' | 'html' | 'json';
@@ -53,9 +53,13 @@ export async function process(options: ProcessOptions): Promise<ProcessResult> {
   const { html, url, format = 'markdown' } = options;
   let engine = options.engine || 'turndown';
 
-  // Auto-select engine
+  // Auto-select engine: use AI for complex pages, but only if Ollama is available
   if (engine === 'auto') {
-    engine = isComplex(html) ? 'readerlm' : 'turndown';
+    if (isComplex(html) && (await isOllamaAvailable())) {
+      engine = 'readerlm';
+    } else {
+      engine = 'turndown';
+    }
   }
 
   // For HTML format, just run Readability to clean up and return HTML

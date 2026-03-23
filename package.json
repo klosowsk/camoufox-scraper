@@ -1,10 +1,10 @@
 {
-  "name": "ghostreader",
+  "name": "ghostreader-monorepo",
   "private": true,
   "description": "Anti-detect browser rendering + intelligent content processing",
   "scripts": {
     "dev": "pnpm --filter @ghostreader/processor dev",
-    "build": "pnpm --filter @ghostreader/processor build",
-    "typecheck": "pnpm --filter @ghostreader/processor typecheck"
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck"
   }
 }
