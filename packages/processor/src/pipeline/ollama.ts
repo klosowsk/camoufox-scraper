@@ -110,23 +110,19 @@ function dynamicContext(inputTokens: number): number {
 }
 
 /**
- * Convert content to clean markdown using the configured Ollama AI model.
+ * Clean up and restructure content into well-formatted markdown using
+ * the configured Ollama AI model (default: reader-lm-v2).
  *
- * Input can be either HTML or pre-extracted markdown (Defuddle output).
- * Sending markdown is 30-50% faster for most pages; HTML is better for
- * complex data-heavy pages where markdown conversion loses structure.
+ * Input is pre-extracted markdown from Defuddle. Sending markdown (not HTML)
+ * is 30-50% faster with equal quality for reader-lm-v2.
  *
  * Automatically selects optimal inference params based on model family:
  *   - reader-lm: temperature=0, deterministic output
  *   - qwen: temperature=0.7, top_p=0.8, top_k=20, num_predict capped
  *   - other: temperature=0, system prompt
  */
-export async function toMarkdownWithAI(
-  content: string,
-  options?: { isHtml?: boolean },
-): Promise<string> {
+export async function toMarkdownWithAI(content: string): Promise<string> {
   const model = config.ollamaAiModel;
-  const isHtml = options?.isHtml ?? false;
 
   // Pre-flight: is Ollama reachable?
   const available = await isOllamaAvailable();
@@ -138,18 +134,17 @@ export async function toMarkdownWithAI(
   }
 
   // Strip any residual markdown images before sending to AI
-  const input = isHtml ? content : stripMarkdownImages(content);
+  const input = stripMarkdownImages(content);
 
   const inputTokens = estimateTokens(input);
   const numCtx = dynamicContext(inputTokens);
 
-  const systemPrompt = isHtml
-    ? 'You are a precise HTML-to-Markdown converter. Convert the provided HTML to clean, well-formatted Markdown. Preserve all content, links, headings, lists, tables, and code blocks. For listings or catalogs, create structured tables. Remove navigation, filters, and decorative elements. Output only the markdown, no explanations.'
-    : 'You are a content formatter. Clean up and restructure the provided markdown into well-formatted, readable markdown. For listings or catalogs, create structured tables with appropriate columns. Remove navigation noise, filter links, and empty sections. Preserve all data content and links. Output only the cleaned markdown, no explanations.';
+  const systemPrompt =
+    'You are a content formatter. Clean up and restructure the provided markdown into well-formatted, readable markdown. For listings or catalogs, create structured tables with appropriate columns. Remove navigation noise, filter links, and empty sections. Preserve all data content and links. Output only the cleaned markdown, no explanations.';
 
   // Model-family specific settings
   if (isReaderLM(model)) {
-    // reader-lm works with both HTML and markdown input, deterministic output
+    // reader-lm: deterministic output, no sampling
     const response = await getClient().chat({
       model,
       messages: [

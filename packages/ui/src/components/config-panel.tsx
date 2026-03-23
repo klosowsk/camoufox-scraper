@@ -12,8 +12,7 @@ export type Format = "markdown" | "html" | "json";
 
 const ENGINE_LABELS: Record<string, string> = {
   standard: "Standard (fast)",
-  ai: "AI",
-  auto: "Auto",
+  ai: "AI (reader-lm-v2)",
 };
 
 function engineLabel(name: string): string {

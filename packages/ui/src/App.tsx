@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { History, Ghost } from "lucide-react";
+import { BrowserRouter, Routes, Route, Link } from "react-router";
+import { History, Ghost, BookOpen, Terminal, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UrlInput } from "@/components/url-input";
 import { ConfigPanel, type Config } from "@/components/config-panel";
 import { ResultView } from "@/components/result-view";
 import { ExtractView } from "@/components/extract-view";
 import { HistorySidebar } from "@/components/history-sidebar";
+import { DocsPage } from "@/components/docs-page";
 import {
   renderUrl,
   extractUrl,
@@ -20,10 +22,10 @@ import {
   type HistoryEntry,
 } from "@/lib/history";
 
-const DEFAULT_ENGINES = ["standard", "ai", "auto"];
+const DEFAULT_ENGINES = ["standard", "ai"];
 const DEFAULT_PROFILES = ["google_web", "google_news", "base"];
 
-function App() {
+function HomePage() {
   // Config state
   const [config, setConfig] = useState<Config>({
     mode: "render",
@@ -141,7 +143,8 @@ function App() {
     setHistory([]);
   }
 
-  const hasResults = renderContent !== null || extractData !== null || error !== null;
+  const hasResults =
+    renderContent !== null || extractData !== null || error !== null;
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -153,14 +156,23 @@ function App() {
             GhostReader
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setHistoryOpen(true)}
-          title="History"
-        >
-          <History className="size-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Link
+            to="/docs"
+            className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title="Docs"
+          >
+            <BookOpen className="size-4" />
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setHistoryOpen(true)}
+            title="History"
+          >
+            <History className="size-4" />
+          </Button>
+        </div>
       </header>
 
       {/* Main content */}
@@ -216,8 +228,45 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border py-3 px-4 text-center text-xs text-muted-foreground">
-        GhostReader v0.1.0
+      <footer className="border-t border-border py-3 px-4">
+        <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+          <span>GhostReader v0.1.0</span>
+          <span className="text-border">|</span>
+          <Link
+            to="/docs"
+            className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+          >
+            <BookOpen className="size-3" />
+            Docs
+          </Link>
+          <a
+            href="https://www.npmjs.com/package/ghostreader"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+          >
+            <Terminal className="size-3" />
+            CLI
+          </a>
+          <a
+            href="https://www.npmjs.com/package/@ghostreader/mcp"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+          >
+            <Terminal className="size-3" />
+            MCP
+          </a>
+          <a
+            href="https://github.com/klosowsk/ghostreader"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+          >
+            <Code className="size-3" />
+            GitHub
+          </a>
+        </div>
       </footer>
 
       {/* History sidebar */}
@@ -229,6 +278,17 @@ function App() {
         onClear={handleClearHistory}
       />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/docs" element={<DocsPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

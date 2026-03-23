@@ -44,7 +44,7 @@ server.tool(
     engine: z
       .string()
       .default('standard')
-      .describe('Processing engine: standard (default, fast), ai (Ollama AI model), auto'),
+      .describe('Processing engine: standard (default, fast) or ai (Ollama reader-lm-v2)'),
     article: z
       .boolean()
       .default(false)

@@ -153,7 +153,7 @@ Usage:
   ghostreader health                    Check processor health
 
 Options (render):
-  --engine <name>     Processing engine: standard (default, fast), ai (Ollama), auto
+  --engine <name>     Processing engine: standard (default, fast), ai (Ollama reader-lm-v2)
   --format <type>     Output format: markdown (default), html, json
   --article           Enable article mode (aggressive content extraction)
 

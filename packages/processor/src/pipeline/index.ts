@@ -3,8 +3,7 @@
  *
  * Engines:
  *   - standard (default): Defuddle extraction + markdown — fast, no AI
- *   - ai: Defuddle extraction + Ollama AI model for markdown conversion
- *   - auto: standard if no Ollama, ai if available and page is complex
+ *   - ai: Defuddle extraction + Ollama AI model for clean markdown restructuring
  *
  * The `article` toggle applies to ALL engines:
  *   - article=false (default): forgiving extraction, preserves data tables/charts
@@ -12,10 +11,10 @@
  */
 
 import { extract } from './extraction.js';
-import { toMarkdownWithAI, isOllamaAvailable, getAiModelInfo } from './ollama.js';
+import { toMarkdownWithAI, getAiModelInfo } from './ollama.js';
 import { config } from '../config.js';
 
-export type Engine = 'standard' | 'ai' | 'auto' | string;
+export type Engine = 'standard' | 'ai' | string;
 export type OutputFormat = 'markdown' | 'html' | 'json';
 
 export interface ProcessOptions {
@@ -39,16 +38,6 @@ export interface ProcessResult {
 }
 
 /**
- * Detect if HTML is complex enough to warrant AI processing.
- */
-function isComplex(html: string): boolean {
-  const tableCount = (html.match(/<table[\s>]/gi) || []).length;
-  const mathPresent = /<math[\s>]/i.test(html) || /\$\$/.test(html) || /\\begin\{/i.test(html);
-  const preCount = (html.match(/<pre[\s>]/gi) || []).length;
-  return tableCount >= 3 || mathPresent || preCount >= 5;
-}
-
-/**
  * Process HTML through the content pipeline.
  */
 export async function process(options: ProcessOptions): Promise<ProcessResult> {
@@ -57,16 +46,7 @@ export async function process(options: ProcessOptions): Promise<ProcessResult> {
 
   // Backward compat aliases
   if (engine === 'turndown' || engine === 'clean') engine = 'standard';
-  if (engine === 'readerlm' || engine === 'qwen-small') engine = 'ai';
-
-  // Auto-select engine
-  if (engine === 'auto') {
-    if (isComplex(html) && (await isOllamaAvailable())) {
-      engine = 'ai';
-    } else {
-      engine = 'standard';
-    }
-  }
+  if (engine === 'readerlm' || engine === 'qwen-small' || engine === 'auto') engine = 'ai';
 
   // For HTML format, extract cleaned HTML (no markdown conversion)
   if (format === 'html') {
@@ -121,17 +101,12 @@ export async function process(options: ProcessOptions): Promise<ProcessResult> {
   }
 
   // AI engine: Defuddle extracts markdown (images always stripped for AI),
-  // then Ollama restructures it into clean, well-formatted markdown.
-  //
-  // Sending Defuddle markdown (not HTML) to reader-lm-v2 is 30-50% faster
-  // and produces equally structured output for most pages.
-  // For complex pages (many tables/math), we still send HTML to preserve
-  // structure that markdown conversion might lose.
+  // then Ollama (reader-lm-v2) restructures it into clean, well-formatted markdown.
+  // Sending Defuddle markdown (not HTML) is 30-50% faster with equal quality.
   if (engine === 'ai') {
-    const complex = isComplex(html);
     const extracted = await extract(html, url, {
       article,
-      markdown: !complex,
+      markdown: true,
       images: false,
     });
 
@@ -146,7 +121,7 @@ export async function process(options: ProcessOptions): Promise<ProcessResult> {
       console.warn(`[ghostreader] ${warning}`);
     }
 
-    const markdown = await toMarkdownWithAI(aiInput, { isHtml: complex });
+    const markdown = await toMarkdownWithAI(aiInput);
     const output = warning ? `${markdown}\n\n---\n_${warning}_` : markdown;
 
     return {
@@ -183,6 +158,5 @@ export async function getAvailableEngines(): Promise<Array<{ name: string; type:
   return [
     { name: 'standard', type: 'fast', available: true },
     { name: 'ai', type: 'ai', model: aiInfo.model, available: aiAvailable },
-    { name: 'auto', type: 'auto', available: true },
   ];
 }
