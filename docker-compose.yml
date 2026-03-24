@@ -4,10 +4,13 @@ services:
     ports:
       - "8090:8080"
     volumes:
-      - ./packages/scraper/userdata:/userdata
+      - scraper-userdata:/userdata
     environment:
       - CAMOUFOX_HEADLESS=virtual
       - CAMOUFOX_PERSISTENT=true
+      - CAMOUFOX_GEOIP=true
+      - CAMOUFOX_HUMANIZE=true
+      - CAMOUFOX_ENABLE_CACHE=true
 
   processor:
     build:
@@ -21,3 +24,6 @@ services:
       - OLLAMA_AI_MODEL=milkey/reader-lm-v2:latest
     depends_on:
       - scraper
+
+volumes:
+  scraper-userdata:
